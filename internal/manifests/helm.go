@@ -1,6 +1,9 @@
 package manifests
 
 import (
+	"fmt"
+	"github.com/blang/semver/v4"
+	"github.com/operator-framework/api/pkg/lib/version"
 	"io/ioutil"
 
 	"github.com/ghodss/yaml"
@@ -23,6 +26,12 @@ func (hm *HelmMetadata) Embed(csv *v1alpha1.ClusterServiceVersion) error {
 	if err := yaml.Unmarshal(f, c); err != nil {
 		return errors.Wrap(err, "cannot unmarshal chart file into metadata object")
 	}
+	csv.Name = fmt.Sprintf("%s.%s", c.Name, c.Version)
+	v, err := semver.Make(c.Version)
+	if err != nil {
+		return errors.Wrap(err, "cannot make a semver version from version string in Helm metadata")
+	}
+	csv.Spec.Version = version.OperatorVersion{Version: v}
 	csv.Spec.Description = c.Description
 	csv.Spec.DisplayName = c.Name
 	//csv.Spec.Icon = c.Icon

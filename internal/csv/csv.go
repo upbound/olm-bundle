@@ -2,9 +2,9 @@ package csv
 
 import (
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // NewClusterServiceVersion returns a new *ClusterServiceVersion with type information
@@ -35,8 +35,8 @@ type Embedder struct {
 	Scanners []Scanner
 }
 
-func (g *Embedder) Embed(manifests []*unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) ([]client.Object, error) {
-	var left []client.Object
+func (g *Embedder) Embed(manifests []*unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) ([]*unstructured.Unstructured, error) {
+	var left []*unstructured.Unstructured
 	for _, m := range manifests {
 		anyIncluded := false
 		for _, s := range g.Scanners {
@@ -51,6 +51,9 @@ func (g *Embedder) Embed(manifests []*unstructured.Unstructured, csv *v1alpha1.C
 		if !anyIncluded {
 			left = append(left, m)
 		}
+	}
+	if err := Validate(left); err != nil {
+		return nil, errors.Wrap(err, "cannot validate resources")
 	}
 	return left, nil
 }
