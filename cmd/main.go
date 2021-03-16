@@ -22,26 +22,28 @@ var (
 	chartFilePath = kingpin.Flag("chart-file-path", "Path to Helm Chart.yaml file to produce metadata").Short('c').String()
 	// TODO(muvaf): Support printing to stdout.
 	outputDir = kingpin.Flag("output-dir", "Output directory to save the OLM bundle files").Short('o').Required().String()
+	baseCSVPath = kingpin.Flag("base-csv-path", "Base ClusterServiceVersion you want olm-bundle to use as template. This is useful for fields that cannot be filled by olm-bundle.").String()
 )
 
 func main() {
 	kingpin.Parse()
 	resources, err := manifests.Parse(os.Stdin)
 	kingpin.FatalIfError(err, "cannot parse resources")
-	e := csv.NewEmbedder()
-	result := csv.NewClusterServiceVersion()
+	result, err := csv.NewClusterServiceVersion(*baseCSVPath)
+	kingpin.FatalIfError(err, "cannot initialize a new ClusterServiceVersion")
 	if *chartFilePath != "" {
 		hm := &manifests.HelmMetadata{
 			ChartFilePath: *chartFilePath,
 		}
 		kingpin.FatalIfError(hm.Embed(result), "cannot embed metadata from Helm Chart.yaml file")
 	}
+	e := csv.NewEmbedder()
 	left, err := e.Embed(resources, result)
 	kingpin.FatalIfError(err, "cannot embed resources into ClusterServiceVersion file")
 	kingpin.FatalIfError(csv.Validate(left), "cannot validate")
 	kingpin.FatalIfError(os.MkdirAll(*outputDir, os.ModePerm), "cannot create output dir")
 	kingpin.FatalIfError(write(left, result), "cannot write OLM bundle")
-	fmt.Printf("\\U0001f47f Completed!\nYou can find your OLM bundle in %s\n", *outputDir)
+	fmt.Printf("✅ You can find your OLM bundle in %s\n🚀 Have fun!\n", *outputDir)
 }
 
 func write(resources []*unstructured.Unstructured, csvo *v1alpha1.ClusterServiceVersion) error {
