@@ -9,18 +9,21 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-func NewParser(files []string, streams ...io.Reader) *Parser {
+// NewParser returns a new *Parser.
+func NewParser(paths []string, streams ...io.Reader) *Parser {
 	return &Parser{
-		Streams: streams,
-		Files:   files,
+		Streams:   streams,
+		FilePaths: paths,
 	}
 }
 
+// Parser parses Kubernetes objects from given streams and files.
 type Parser struct {
-	Streams []io.Reader
-	Files   []string
+	Streams   []io.Reader
+	FilePaths []string
 }
 
+// Parse returns an array of *unstructured.Unstructured parsed from the streams.
 func (p *Parser) Parse() ([]*unstructured.Unstructured, error) {
 	var result []*unstructured.Unstructured
 	for _, s := range p.Streams {
@@ -30,7 +33,7 @@ func (p *Parser) Parse() ([]*unstructured.Unstructured, error) {
 		}
 		result = append(result, u...)
 	}
-	for _, p := range p.Files {
+	for _, p := range p.FilePaths {
 		f, err := os.Open(p)
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot open file in %s", p)

@@ -7,19 +7,20 @@ import (
 	"net/http"
 
 	"github.com/blang/semver/v4"
-	"github.com/operator-framework/api/pkg/lib/version"
-
 	"github.com/ghodss/yaml"
-
+	"github.com/operator-framework/api/pkg/lib/version"
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/chart"
 )
 
+// HelmMetadata writes metadata parsed from a Helm chart to ClusterServiceVersion.
 type HelmMetadata struct {
 	ChartFilePath string
 }
 
+// Embed reads Chart.yaml and puts all the matching available metadata into
+// given ClusterServiceVersion.
 func (hm *HelmMetadata) Embed(csv *v1alpha1.ClusterServiceVersion) error {
 	f, err := ioutil.ReadFile(hm.ChartFilePath)
 	if err != nil {
