@@ -61,7 +61,6 @@ func parseStream(in io.Reader) ([]*unstructured.Unstructured, error) {
 		if u.GetName() == "" || u.GetAPIVersion() == "" || u.GetKind() == "" {
 			continue
 		}
-		// delete(u.GetAnnotations(), "release")
 		result = append(result, u)
 	}
 	return result, nil

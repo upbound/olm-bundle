@@ -1,9 +1,9 @@
 package csv
 
 import (
+	"github.com/operator-framework/operator-registry/pkg/lib/bundle"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"github.com/operator-framework/operator-registry/pkg/lib/bundle"
 )
 
 // Validate checks whether objects can be included in an OLM bundle.
