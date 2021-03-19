@@ -5,7 +5,7 @@ import (
 
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -29,18 +29,25 @@ func (*CustomResourceDefinition) Run(manifest *unstructured.Unstructured, csv *v
 	if !strings.EqualFold(manifest.GetObjectKind().GroupVersionKind().Kind, "CustomResourceDefinition") {
 		return false, nil
 	}
-	crd := &apiextensions.CustomResourceDefinition{}
+	crd := &v1.CustomResourceDefinition{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(manifest.Object, crd); err != nil {
 		return false, err
 	}
+	var v string
+	for _, ver := range crd.Spec.Versions {
+		if ver.Served {
+			v = ver.Name
+			break
+		}
+	}
 	owned := v1alpha1.CRDDescription{
-		Name: crd.GetName(),
-		//Version:
+		Name:        crd.Name,
+		Version:     v,
 		Kind:        crd.Spec.Names.Kind,
-		DisplayName: crd.GetName(),
+		DisplayName: crd.Spec.Names.Kind,
 	}
 	csv.Spec.CustomResourceDefinitions.Owned = append(csv.Spec.CustomResourceDefinitions.Owned, owned)
-	return true, nil
+	return false, nil
 }
 
 type Deployment struct{}

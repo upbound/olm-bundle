@@ -1,10 +1,11 @@
 package csv
 
 import (
+	"io/ioutil"
+
 	"github.com/ghodss/yaml"
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
-	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -32,7 +33,7 @@ func NewClusterServiceVersion(baseCSVPath string) (*v1alpha1.ClusterServiceVersi
 }
 
 type Scanner interface {
-	Run(manifest *unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) (included bool, err error)
+	Run(manifest *unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) (ignore bool, err error)
 }
 
 func NewEmbedder() *Embedder {

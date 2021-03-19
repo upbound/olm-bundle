@@ -2,15 +2,17 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 
 	"github.com/ghodss/yaml"
 
@@ -21,13 +23,29 @@ import (
 var (
 	chartFilePath = kingpin.Flag("chart-file-path", "Path to Helm Chart.yaml file to produce metadata").Short('c').String()
 	// TODO(muvaf): Support printing to stdout.
-	outputDir = kingpin.Flag("output-dir", "Output directory to save the OLM bundle files").Short('o').Required().String()
-	baseCSVPath = kingpin.Flag("base-csv-path", "Base ClusterServiceVersion you want olm-bundle to use as template. This is useful for fields that cannot be filled by olm-bundle.").String()
+	outputDir              = kingpin.Flag("output-dir", "Output directory to save the OLM bundle files").Short('o').Required().String()
+	baseCSVPath            = kingpin.Flag("base-csv-path", "Base ClusterServiceVersion you want olm-bundle to use as template. This is useful for fields that cannot be filled by olm-bundle.").String()
+	additionalResourcesDir = kingpin.Flag("extra-resources-dir", "Extra resources you would like to add to the OLM bundle.").Short('e').String()
 )
 
 func main() {
 	kingpin.Parse()
-	resources, err := manifests.Parse(os.Stdin)
+	var extraFiles []string
+	if *additionalResourcesDir != "" {
+		err := filepath.Walk(*additionalResourcesDir, func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			extraFiles = append(extraFiles, path)
+			return nil
+		})
+		kingpin.FatalIfError(err, "cannot walk the extra resources directory")
+	}
+	p := manifests.NewParser(extraFiles, os.Stdin)
+	resources, err := p.Parse()
 	kingpin.FatalIfError(err, "cannot parse resources")
 	result, err := csv.NewClusterServiceVersion(*baseCSVPath)
 	kingpin.FatalIfError(err, "cannot initialize a new ClusterServiceVersion")
