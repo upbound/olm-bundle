@@ -23,8 +23,12 @@ const (
 	installStrategyName = "install"
 )
 
+// CustomResourceDefinition adds metadata of given CustomResourceDefinitions
+// to ClusterServiceVersion as owned CRD.
 type CustomResourceDefinition struct{}
 
+// Run adds CRD ownership information to ClusterServiceVersion if given manifest
+// is a CRD.
 func (*CustomResourceDefinition) Run(manifest *unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) (bool, error) {
 	if !strings.EqualFold(manifest.GetObjectKind().GroupVersionKind().Kind, "CustomResourceDefinition") {
 		return false, nil
@@ -50,8 +54,11 @@ func (*CustomResourceDefinition) Run(manifest *unstructured.Unstructured, csv *v
 	return false, nil
 }
 
+// Deployment scans Deployments to add their spec to ClusterServiceVersion.
 type Deployment struct{}
 
+// Run adds the spec of Deployment manifests to ClusterServiceVersion. If successful,
+// their manifests should not be included in the bundle separately.
 func (*Deployment) Run(manifest *unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) (bool, error) {
 	if !strings.EqualFold(manifest.GetObjectKind().GroupVersionKind().Kind, "Deployment") {
 		return false, nil

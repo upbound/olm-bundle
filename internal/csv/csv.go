@@ -65,10 +65,14 @@ func NewAnnotations(outputDir string) (map[string]string, error) {
 	return base["annotations"], nil
 }
 
+// Scanner is a struct that can take information from a manifest to add it to
+// given ClusterServiceVersion and return whether the manifest should be ignored
+// in the final package.
 type Scanner interface {
 	Run(manifest *unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) (ignore bool, err error)
 }
 
+// NewEmbedder returns a new *Embedder.
 func NewEmbedder() *Embedder {
 	return &Embedder{
 		Scanners: []Scanner{
@@ -78,10 +82,13 @@ func NewEmbedder() *Embedder {
 	}
 }
 
+// Embedder runs given Scanners in order.
 type Embedder struct {
 	Scanners []Scanner
 }
 
+// Embed runs all scanners and validates whether the final list of manifests are
+// of supported types by OLM.
 func (g *Embedder) Embed(manifests []*unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) ([]*unstructured.Unstructured, error) {
 	var left []*unstructured.Unstructured
 	for _, m := range manifests {

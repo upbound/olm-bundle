@@ -25,7 +25,7 @@ type Parser struct {
 
 // Parse returns an array of *unstructured.Unstructured parsed from the streams.
 func (p *Parser) Parse() ([]*unstructured.Unstructured, error) {
-	var result []*unstructured.Unstructured
+	var result []*unstructured.Unstructured // nolint:prealloc
 	for _, s := range p.Streams {
 		u, err := parseStream(s)
 		if err != nil {

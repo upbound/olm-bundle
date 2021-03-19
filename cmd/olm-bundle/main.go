@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -14,14 +15,14 @@ import (
 	"github.com/upbound/olm-bundle/internal/writer"
 )
 
-type OLMBundleCLI struct {
+type olmBundleCLI struct {
 	ChartFilePath     string `help:"Path to Helm Chart.yaml file to produce metadata." type:"path"`
 	OutputDir         string `help:"Output directory to save the OLM bundle files." type:"path" required:""`
 	ExtraResourcesDir string `help:"Extra resources you would like to add to the OLM bundle." type:"path"`
 }
 
 func main() {
-	cli := &OLMBundleCLI{}
+	cli := &olmBundleCLI{}
 	ctx := kong.Parse(cli)
 	var extraFiles []string
 	if cli.ExtraResourcesDir != "" {
@@ -46,7 +47,7 @@ func main() {
 		hm := &manifests.HelmMetadata{
 			ChartFilePath: cli.ChartFilePath,
 		}
-		ctx.FatalIfErrorf(hm.Embed(result), "cannot embed metadata from Helm Chart.yaml file")
+		ctx.FatalIfErrorf(hm.Embed(context.TODO(), result), "cannot embed metadata from Helm Chart.yaml file")
 	}
 	e := csv.NewEmbedder()
 	left, err := e.Embed(resources, result)

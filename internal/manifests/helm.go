@@ -1,6 +1,7 @@
 package manifests
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -21,7 +22,7 @@ type HelmMetadata struct {
 
 // Embed reads Chart.yaml and puts all the matching available metadata into
 // given ClusterServiceVersion.
-func (hm *HelmMetadata) Embed(csv *v1alpha1.ClusterServiceVersion) error {
+func (hm *HelmMetadata) Embed(ctx context.Context, csv *v1alpha1.ClusterServiceVersion) error {
 	f, err := ioutil.ReadFile(hm.ChartFilePath)
 	if err != nil {
 		return errors.Wrap(err, "cannot read chart file")
@@ -39,7 +40,7 @@ func (hm *HelmMetadata) Embed(csv *v1alpha1.ClusterServiceVersion) error {
 	csv.Spec.Description = c.Description
 	csv.Spec.DisplayName = c.Name
 	if c.Icon != "" {
-		i, err := getIconData(c.Icon)
+		i, err := getIconData(ctx, c.Icon)
 		if err != nil {
 			return errors.Wrapf(err, "cannot get icon data from %s", c.Icon)
 		}
@@ -57,12 +58,17 @@ func (hm *HelmMetadata) Embed(csv *v1alpha1.ClusterServiceVersion) error {
 	return nil
 }
 
-func getIconData(url string) (v1alpha1.Icon, error) {
-	resp, err := http.Get(url)
+func getIconData(ctx context.Context, url string) (v1alpha1.Icon, error) {
+	// TODO(muvaf): Is there way to avoid having variable url?
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return v1alpha1.Icon{}, errors.Wrapf(err, "cannot download icon in %s", url)
+		return v1alpha1.Icon{}, errors.Wrapf(err, "cannot create request for %s", url)
 	}
-	defer resp.Body.Close()
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return v1alpha1.Icon{}, errors.Wrapf(err, "cannot do request for %s", url)
+	}
+	defer resp.Body.Close() // nolint:errcheck
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return v1alpha1.Icon{}, errors.Wrap(err, "cannot read downloaded image data")

@@ -2,3 +2,5 @@
 .DS_Store
 .work/
 .cache/
+vendor
+_output
