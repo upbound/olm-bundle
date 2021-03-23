@@ -52,14 +52,20 @@ func main() {
 	e := csv.NewEmbedder()
 	left, err := e.Embed(resources, result)
 	ctx.FatalIfErrorf(err, "cannot embed resources into ClusterServiceVersion file")
+	ann, err := csv.NewAnnotations(cli.OutputDir)
+	ctx.FatalIfErrorf(err, "cannot create a new annotations object")
+	if result.GetAnnotations() == nil {
+		result.SetAnnotations(map[string]string{})
+	}
+	for k, v := range ann {
+		result.GetAnnotations()[k] = v
+	}
 	ctx.FatalIfErrorf(csv.Validate(left), "cannot validate")
-	out := make([]client.Object, len(resources)+1)
-	for i, u := range resources {
+	out := make([]client.Object, len(left)+1)
+	for i, u := range left {
 		out[i] = u
 	}
 	out[len(out)-1] = result
-	ann, err := csv.NewAnnotations(cli.OutputDir)
-	ctx.FatalIfErrorf(err, "cannot create a new annotations object")
 	b := &writer.Bundle{
 		PackageDir: cli.OutputDir,
 		Manifests:  out,
@@ -69,5 +75,5 @@ func main() {
 		},
 	}
 	ctx.FatalIfErrorf(b.Write(), "cannot write bundle")
-	fmt.Printf("✅ You can find your OLM bundle in %s\n🚀 Have fun!\n", cli.OutputDir)
+	fmt.Printf("✨ You can find your OLM bundle in %s\n🚀 Have fun!\n", cli.OutputDir)
 }

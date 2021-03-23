@@ -20,7 +20,7 @@ import (
 // bind it to. We skip doing this for now.
 
 const (
-	installStrategyName = "install"
+	installStrategyName = "deployment"
 )
 
 // CustomResourceDefinition adds metadata of given CustomResourceDefinitions

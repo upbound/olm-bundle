@@ -14,13 +14,7 @@ PLATFORMS ?= linux_amd64 darwin_amd64
 # loading of this file
 NPROCS ?= 1
 
-# each of our test suites starts a kube-apiserver and running many test suites in
-# parallel can lead to high CPU utilization. by default we reduce the parallelism
-# to half the number of CPU cores.
-GO_TEST_PARALLEL := $(shell echo $$(( $(NPROCS) / 2 )))
-
 GO_STATIC_PACKAGES = $(GO_PROJECT)/cmd/olm-bundle
-GO_LDFLAGS += -X $(GO_PROJECT)/pkg/version.Version=$(VERSION)
 GO_SUBDIRS += cmd internal
 GO111MODULE = on
 -include build/makelib/golang.mk

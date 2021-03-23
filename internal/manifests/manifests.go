@@ -61,7 +61,7 @@ func parseStream(in io.Reader) ([]*unstructured.Unstructured, error) {
 		}
 		// Helm does not have any built-in validation like Kustomize, so, we
 		// have to do some basic sanity check to skip empty templates.
-		if u.GetName() == "" || u.GetAPIVersion() == "" || u.GetKind() == "" {
+		if u.GetAPIVersion() == "" || u.GetKind() == "" {
 			continue
 		}
 		result = append(result, u)

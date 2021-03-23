@@ -33,7 +33,7 @@ func (b *Bundle) Write() error {
 		return errors.Wrapf(err, "cannot create folder %s", versionDir)
 	}
 
-	dfPath := filepath.Join(versionDir, "bundle.Dockerfile")
+	dfPath := filepath.Join(versionDir, "Dockerfile")
 	if err := b.writeDockerfile(dfPath); err != nil {
 		return errors.Wrap(err, "cannot write bundle.Dockerfile ")
 	}

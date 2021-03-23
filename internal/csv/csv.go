@@ -106,8 +106,5 @@ func (g *Embedder) Embed(manifests []*unstructured.Unstructured, csv *v1alpha1.C
 			left = append(left, m)
 		}
 	}
-	if err := Validate(left); err != nil {
-		return nil, errors.Wrap(err, "cannot validate resources")
-	}
 	return left, nil
 }
