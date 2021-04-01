@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -27,33 +28,42 @@ type Metadata struct {
 }
 
 // Write writes the bundle files to disk.
-func (b *Bundle) Write() error {
+func (b *Bundle) Write() (string, error) {
 	versionDir := filepath.Join(b.PackageDir, b.Version)
 	if err := os.MkdirAll(versionDir, os.ModePerm); err != nil {
-		return errors.Wrapf(err, "cannot create folder %s", versionDir)
+		return "", errors.Wrapf(err, "cannot create folder %s", versionDir)
 	}
 
 	dfPath := filepath.Join(versionDir, "Dockerfile")
 	if err := b.writeDockerfile(dfPath); err != nil {
-		return errors.Wrap(err, "cannot write bundle.Dockerfile ")
+		return "", errors.Wrap(err, "cannot write bundle.Dockerfile ")
 	}
 
 	manifestsDir := filepath.Join(versionDir, "manifests")
 	if err := b.writeManifests(manifestsDir); err != nil {
-		return errors.Wrap(err, "cannot write manifests")
+		return "", errors.Wrap(err, "cannot write manifests")
 	}
 
 	metadataDir := filepath.Join(versionDir, "metadata")
 	if err := b.writeAnnotations(metadataDir); err != nil {
-		return errors.Wrap(err, "cannot write annotations")
+		return "", errors.Wrap(err, "cannot write annotations")
 	}
-	return nil
+	return versionDir, nil
 }
 
 func (b *Bundle) writeDockerfile(path string) error {
 	out := "FROM scratch\n\n"
-	for k, v := range b.Metadata.Annotations {
-		out += fmt.Sprintf("LABEL %s=%s\n", k, v)
+	// The output has to be consistent so we need to sort before iterating over
+	// the keys of the map.
+	keys := make([]string, len(b.Metadata.Annotations))
+	i := 0
+	for k := range b.Metadata.Annotations {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		out += fmt.Sprintf("LABEL %s=%s\n", k, b.Metadata.Annotations[k])
 	}
 	out += "\nCOPY manifests /manifests/\n"
 	out += "COPY metadata /metadata/\n"
