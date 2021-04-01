@@ -74,6 +74,7 @@ func main() {
 			Annotations: ann,
 		},
 	}
-	ctx.FatalIfErrorf(b.Write(), "cannot write bundle")
-	fmt.Printf("✨ You can find your OLM bundle in %s\n🚀 Have fun!\n", cli.OutputDir)
+	dir, err := b.Write()
+	ctx.FatalIfErrorf(err, "cannot write bundle")
+	fmt.Printf("✨ You can find your OLM bundle in %s\n🚀 Have fun!\n", dir)
 }

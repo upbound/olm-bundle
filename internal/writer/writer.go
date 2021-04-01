@@ -27,27 +27,27 @@ type Metadata struct {
 }
 
 // Write writes the bundle files to disk.
-func (b *Bundle) Write() error {
+func (b *Bundle) Write() (string, error) {
 	versionDir := filepath.Join(b.PackageDir, b.Version)
 	if err := os.MkdirAll(versionDir, os.ModePerm); err != nil {
-		return errors.Wrapf(err, "cannot create folder %s", versionDir)
+		return "", errors.Wrapf(err, "cannot create folder %s", versionDir)
 	}
 
 	dfPath := filepath.Join(versionDir, "Dockerfile")
 	if err := b.writeDockerfile(dfPath); err != nil {
-		return errors.Wrap(err, "cannot write bundle.Dockerfile ")
+		return "", errors.Wrap(err, "cannot write bundle.Dockerfile ")
 	}
 
 	manifestsDir := filepath.Join(versionDir, "manifests")
 	if err := b.writeManifests(manifestsDir); err != nil {
-		return errors.Wrap(err, "cannot write manifests")
+		return "", errors.Wrap(err, "cannot write manifests")
 	}
 
 	metadataDir := filepath.Join(versionDir, "metadata")
 	if err := b.writeAnnotations(metadataDir); err != nil {
-		return errors.Wrap(err, "cannot write annotations")
+		return "", errors.Wrap(err, "cannot write annotations")
 	}
-	return nil
+	return versionDir, nil
 }
 
 func (b *Bundle) writeDockerfile(path string) error {
