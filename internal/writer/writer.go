@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -52,8 +53,17 @@ func (b *Bundle) Write() (string, error) {
 
 func (b *Bundle) writeDockerfile(path string) error {
 	out := "FROM scratch\n\n"
-	for k, v := range b.Metadata.Annotations {
-		out += fmt.Sprintf("LABEL %s=%s\n", k, v)
+	// The output has to be consistent so we need to sort before iterating over
+	// the keys of the map.
+	keys := make([]string, len(b.Metadata.Annotations))
+	i := 0
+	for k := range b.Metadata.Annotations {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		out += fmt.Sprintf("LABEL %s=%s\n", k, b.Metadata.Annotations[k])
 	}
 	out += "\nCOPY manifests /manifests/\n"
 	out += "COPY metadata /metadata/\n"
