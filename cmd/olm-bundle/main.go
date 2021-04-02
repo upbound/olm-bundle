@@ -69,7 +69,6 @@ func main() {
 	b := &writer.Bundle{
 		PackageDir: cli.OutputDir,
 		Manifests:  out,
-		Version:    result.Spec.Version.String(),
 		Metadata: writer.Metadata{
 			Annotations: ann,
 		},
