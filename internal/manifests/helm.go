@@ -18,6 +18,7 @@ import (
 // HelmMetadata writes metadata parsed from a Helm chart to ClusterServiceVersion.
 type HelmMetadata struct {
 	ChartFilePath string
+	Version       string
 }
 
 // Embed reads Chart.yaml and puts all the matching available metadata into
@@ -31,8 +32,12 @@ func (hm *HelmMetadata) Embed(ctx context.Context, csv *v1alpha1.ClusterServiceV
 	if err := yaml.Unmarshal(f, c); err != nil {
 		return errors.Wrap(err, "cannot unmarshal chart file into metadata object")
 	}
-	csv.Name = fmt.Sprintf("%s.%s", c.Name, c.Version)
-	v, err := semver.Make(c.Version)
+	ver := c.Version
+	if hm.Version != "" {
+		ver = hm.Version
+	}
+	csv.Name = fmt.Sprintf("%s.%s", c.Name, ver)
+	v, err := semver.Make(ver)
 	if err != nil {
 		return errors.Wrap(err, "cannot make a semver version from version string in Helm metadata")
 	}
