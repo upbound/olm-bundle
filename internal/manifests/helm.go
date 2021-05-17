@@ -43,7 +43,6 @@ func (hm *HelmMetadata) Embed(ctx context.Context, csv *v1alpha1.ClusterServiceV
 	}
 	csv.Spec.Version = version.OperatorVersion{Version: v}
 	csv.Spec.Description = c.Description
-	csv.Spec.DisplayName = c.Name
 	if c.Icon != "" {
 		i, err := getIconData(ctx, c.Icon)
 		if err != nil {
