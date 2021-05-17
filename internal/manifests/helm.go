@@ -43,7 +43,6 @@ func (hm *HelmMetadata) Embed(ctx context.Context, csv *v1alpha1.ClusterServiceV
 	}
 	csv.Spec.Version = version.OperatorVersion{Version: v}
 	csv.Spec.Description = c.Description
-	csv.Spec.DisplayName = c.Name
 	if c.Icon != "" {
 		i, err := getIconData(ctx, c.Icon)
 		if err != nil {
@@ -51,7 +50,6 @@ func (hm *HelmMetadata) Embed(ctx context.Context, csv *v1alpha1.ClusterServiceV
 		}
 		csv.Spec.Icon = []v1alpha1.Icon{i}
 	}
-	csv.Spec.Provider = v1alpha1.AppLink{Name: c.Name, URL: c.Home}
 	csv.Spec.Maintainers = make([]v1alpha1.Maintainer, len(c.Maintainers))
 	for i := range c.Maintainers {
 		csv.Spec.Maintainers[i] = v1alpha1.Maintainer{
