@@ -74,7 +74,9 @@ func (b *Bundle) writeManifests(dir string) error {
 		return errors.Wrapf(err, "cannot create folder %s", dir)
 	}
 	for _, m := range b.Manifests {
-		name := fmt.Sprintf("%s.%s.yaml", cleanName(m.GetName()), m.GetObjectKind().GroupVersionKind().Kind)
+		// Kind is made lower-case to pass integration tests in OLM repositories,
+		// it is not a requirement for other tools in OLM ecosystem.
+		name := fmt.Sprintf("%s.%s.yaml", cleanName(m.GetName()), strings.ToLower(m.GetObjectKind().GroupVersionKind().Kind))
 		o, err := yaml.Marshal(m)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal object into YAML")
