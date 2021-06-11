@@ -8,61 +8,50 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// NewClusterServiceVersion returns a new *ClusterServiceVersion with the YAML in
-// outputDir if it exists, otherwise it will return an empty *ClusterServiceVersion.
-func NewClusterServiceVersion(outputDir string) (*v1alpha1.ClusterServiceVersion, error) {
-	base := &v1alpha1.ClusterServiceVersion{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1alpha1",
-			Kind:       "ClusterServiceVersion",
-		},
-	}
+// OverrideClusterServiceVersion reads the override file in the output directory
+// and makes sure it's applied to the given base ClusterServiceVersion.
+func OverrideClusterServiceVersion(base *v1alpha1.ClusterServiceVersion, outputDir string) error {
 	baseCSVPath := filepath.Join(outputDir, "clusterserviceversion.yaml.tmpl")
 	_, err := os.Stat(baseCSVPath)
 	if err != nil && os.IsNotExist(err) {
-		return base, nil
+		return nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot stat clusterserviceversion.yaml.tmpl file")
+		return errors.Wrap(err, "cannot stat clusterserviceversion.yaml.tmpl file")
 	}
 	d, err := ioutil.ReadFile(baseCSVPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot read base ClusterServiceVersion file")
+		return errors.Wrap(err, "cannot read base ClusterServiceVersion file")
 	}
-	if err := yaml.Unmarshal(d, base); err != nil {
-		return nil, errors.Wrap(err, "cannot unmarshal given base ClusterServiceVersion file")
-	}
-	return base, nil
+	return errors.Wrap(yaml.Unmarshal(d, base), "cannot unmarshal given base ClusterServiceVersion file")
 }
 
-// NewAnnotations returns a new annotation object. If outputDir contains a template,
-// it will be read and added.
-func NewAnnotations(outputDir string) (map[string]string, error) {
-	baseAnnPath := filepath.Join(outputDir, "annotations.yaml.tmpl")
-	_, err := os.Stat(baseAnnPath)
+// OverrideAnnotations reads the local annotations file and merges it with the
+// given annotations map.
+func OverrideAnnotations(base map[string]string, outputDir string) error {
+	overrideAnnPath := filepath.Join(outputDir, "annotations.yaml.tmpl")
+	_, err := os.Stat(overrideAnnPath)
 	if err != nil && os.IsNotExist(err) {
-		return nil, nil
+		return nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot stat annotations.yaml.tmpl file")
+		return errors.Wrap(err, "cannot stat annotations.yaml.tmpl file")
 	}
-	d, err := ioutil.ReadFile(baseAnnPath)
+	d, err := ioutil.ReadFile(overrideAnnPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot read base annotations file")
+		return errors.Wrap(err, "cannot read base annotations file")
 	}
-	// This type is imposed by the format.
-	base := map[string]map[string]string{}
-	if err := yaml.Unmarshal(d, &base); err != nil {
-		return nil, errors.Wrap(err, "cannot unmarshal given base annotations file")
+	ann := map[string]map[string]string{}
+	if err := yaml.Unmarshal(d, &ann); err != nil {
+		return errors.Wrap(err, "cannot unmarshal given override annotations file")
 	}
-	if base["annotations"] == nil {
-		return nil, errors.Errorf("existing annotations template in %s is empty", baseAnnPath)
+	for k, v := range ann["annotations"] {
+		base[k] = v
 	}
-	return base["annotations"], nil
+	return nil
 }
 
 // Scanner is a struct that can take information from a manifest to add it to
