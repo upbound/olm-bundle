@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/alecthomas/kong"
+	"github.com/operator-framework/api/pkg/operators/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/upbound/olm-bundle/internal/csv"
@@ -43,33 +45,43 @@ func main() {
 	resources, err := p.Parse()
 	ctx.FatalIfErrorf(err, "cannot parse resources")
 
-	result, err := csv.NewClusterServiceVersion(cli.OutputDir)
-	ctx.FatalIfErrorf(err, "cannot initialize a new ClusterServiceVersion")
+	// Prepare the CSV with given manifests
+	resultCSV := &v1alpha1.ClusterServiceVersion{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1alpha1",
+			Kind:       "ClusterServiceVersion",
+		},
+	}
 	hm := &manifests.HelmMetadata{
 		ChartFilePath: cli.ChartFilePath,
 		Version:       cli.Version,
 	}
-	ctx.FatalIfErrorf(hm.Embed(context.TODO(), result), "cannot embed metadata from Helm Chart.yaml file")
+	ctx.FatalIfErrorf(hm.Embed(context.TODO(), resultCSV), "cannot embed metadata from Helm Chart.yaml file")
 
 	e := csv.NewEmbedder()
-	remaining, err := e.Embed(resources, result)
+	remaining, err := e.Embed(resources, resultCSV)
 	ctx.FatalIfErrorf(err, "cannot embed resources into ClusterServiceVersion file")
 
-	ann, err := csv.NewAnnotations(cli.OutputDir)
+	// Write the final overriding values.
+	ctx.FatalIfErrorf(csv.OverrideClusterServiceVersion(resultCSV, cli.OutputDir), "cannot override ClusterServiceVersion")
+	ann := map[string]string{}
+	ctx.FatalIfErrorf(csv.OverrideAnnotations(ann, cli.OutputDir), "cannot override annotations object")
+
 	ctx.FatalIfErrorf(err, "cannot create a new annotations object")
-	if result.GetAnnotations() == nil {
-		result.SetAnnotations(map[string]string{})
+	if resultCSV.GetAnnotations() == nil {
+		resultCSV.SetAnnotations(map[string]string{})
 	}
 	for k, v := range ann {
-		result.GetAnnotations()[k] = v
+		resultCSV.GetAnnotations()[k] = v
 	}
 
+	// Validate and write the files to the disk.
 	ctx.FatalIfErrorf(csv.Validate(remaining), "cannot validate")
 	out := make([]client.Object, len(remaining)+1)
 	for i, u := range remaining {
 		out[i] = u
 	}
-	out[len(out)-1] = result
+	out[len(out)-1] = resultCSV
 	b := &writer.Bundle{
 		PackageDir: cli.OutputDir,
 		Manifests:  out,
