@@ -62,7 +62,7 @@ func (b *Bundle) writeDockerfile(path string) error {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		out += fmt.Sprintf("LABEL %s=%s\n", k, b.Metadata.Annotations[k])
+		out += fmt.Sprintf("LABEL %s=\"%s\"\n", k, b.Metadata.Annotations[k])
 	}
 	out += "\nCOPY manifests /manifests/\n"
 	out += "COPY metadata /metadata/\n"
