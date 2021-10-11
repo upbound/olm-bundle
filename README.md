@@ -1,5 +1,7 @@
 # OLM Bundle
 
+CLA PR change
+
 This tool can be used to produce an [Operator Lifecycle Manager](https://docs.openshift.com/container-platform/4.7/operators/understanding/olm-packaging-format.html)
 bundle from a stream of YAMLs. You can additionally add metadata by using a Helm
 `Chart.yaml` file.
