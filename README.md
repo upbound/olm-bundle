@@ -46,3 +46,8 @@ annotations:
   operators.operatorframework.io.bundle.channels.v1: "beta,stable"
   operators.operatorframework.io.bundle.channel.default.v1: "stable"
 ```
+
+Tool also supports [artifacthub.io/*](https://artifacthub.io/docs/topics/annotations/helm/) 
+metadata in Chart.yaml provided as annotations. In case there is a conflict of metadata coming 
+from directory scan and metadata that are explicitly mentioned in Chart.yaml, this can be 
+controlled by using `--helm-chart-overrides` switch. 
