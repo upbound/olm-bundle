@@ -5,6 +5,8 @@ import (
 
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
+
+	rbacv1 "k8s.io/api/rbac/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,23 +57,101 @@ func (*CustomResourceDefinition) Run(manifest *unstructured.Unstructured, csv *v
 }
 
 // Deployment scans Deployments to add their spec to ClusterServiceVersion.
-type Deployment struct{}
+type Deployment struct {
+	permSet        []v1alpha1.StrategyDeploymentPermissions
+	permClusterSet []v1alpha1.StrategyDeploymentPermissions
+	rules          map[string][]rbacv1.PolicyRule
+}
+
+// populateRules populates ClusterRole and Role for further processing
+func (d *Deployment) populateRules(manifest *unstructured.Unstructured) error {
+	r := &rbacv1.Role{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(manifest.Object, r); err != nil {
+		return err
+	}
+	if len(d.rules) == 0 {
+		d.rules = make(map[string][]rbacv1.PolicyRule)
+	}
+	d.rules[r.Name] = r.Rules
+	return nil
+}
+
+// appendRules appens StrategyDeploymentPermissions.Rules under the same ServiceAccountName
+func appendRules(existing []v1alpha1.StrategyDeploymentPermissions, add v1alpha1.StrategyDeploymentPermissions) []v1alpha1.StrategyDeploymentPermissions {
+	saExists := false
+	for i := range existing {
+		if existing[i].ServiceAccountName == add.ServiceAccountName {
+			existing[i].Rules = append(existing[i].Rules, add.Rules...)
+			saExists = true
+			break
+		}
+	}
+	if !saExists {
+		existing = append(existing, add)
+	}
+	return existing
+}
+
+// formatPermissions generates StrategyDeploymentPermissions
+func (d *Deployment) formatPermissions(manifest *unstructured.Unstructured, cluster bool) error {
+	perm := v1alpha1.StrategyDeploymentPermissions{}
+	rb := &rbacv1.RoleBinding{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(manifest.Object, rb); err != nil {
+		return err
+	}
+
+	for _, sub := range rb.Subjects {
+		if sub.Kind == "ServiceAccount" {
+			perm.ServiceAccountName = sub.Name
+			perm.Rules = d.rules[rb.RoleRef.Name]
+			if cluster {
+				d.permClusterSet = appendRules(d.permClusterSet, perm)
+			}
+			if !cluster {
+				d.permSet = appendRules(d.permSet, perm)
+			}
+		}
+	}
+	return nil
+}
 
 // Run adds the spec of Deployment manifests to ClusterServiceVersion. If successful,
 // their manifests should not be included in the bundle separately.
-func (*Deployment) Run(manifest *unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) (bool, error) {
-	if !strings.EqualFold(manifest.GetObjectKind().GroupVersionKind().Kind, "Deployment") {
+func (d *Deployment) Run(manifest *unstructured.Unstructured, csv *v1alpha1.ClusterServiceVersion) (bool, error) {
+	switch manifest.GetObjectKind().GroupVersionKind().Kind {
+	case "Deployment":
+		dep := &appsv1.Deployment{}
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(manifest.Object, dep); err != nil {
+			return false, err
+		}
+		spec := v1alpha1.StrategyDeploymentSpec{
+			Name: dep.Name,
+			Spec: dep.Spec,
+		}
+		csv.Spec.InstallStrategy.StrategyName = installStrategyName
+		csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs = append(csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs, spec)
+		csv.Spec.InstallStrategy.StrategySpec.ClusterPermissions = d.permClusterSet
+		csv.Spec.InstallStrategy.StrategySpec.Permissions = d.permSet
+		return true, nil
+	case "ClusterRole", "Role":
+		err := d.populateRules(manifest)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	case "ClusterRoleBinding":
+		err := d.formatPermissions(manifest, true)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	case "RoleBinding":
+		err := d.formatPermissions(manifest, false)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	default:
 		return false, nil
 	}
-	dep := &appsv1.Deployment{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(manifest.Object, dep); err != nil {
-		return false, err
-	}
-	spec := v1alpha1.StrategyDeploymentSpec{
-		Name: dep.Name,
-		Spec: dep.Spec,
-	}
-	csv.Spec.InstallStrategy.StrategyName = installStrategyName
-	csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs = append(csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs, spec)
-	return true, nil
 }
