@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/ghodss/yaml"
@@ -37,7 +38,7 @@ func (hm *HelmMetadata) Embed(ctx context.Context, csv *v1alpha1.ClusterServiceV
 		ver = hm.Version
 	}
 	csv.Name = fmt.Sprintf("%s.%s", c.Name, ver)
-	v, err := semver.Make(ver)
+	v, err := semver.Make(strings.TrimPrefix(ver, "v"))
 	if err != nil {
 		return errors.Wrap(err, "cannot make a semver version from version string in Helm metadata")
 	}
