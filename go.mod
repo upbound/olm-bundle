@@ -9,10 +9,10 @@ require (
 	github.com/operator-framework/api v0.7.0
 	github.com/operator-framework/operator-registry v1.16.1
 	github.com/pkg/errors v0.9.1
-	helm.sh/helm/v3 v3.5.3
-	k8s.io/api v0.20.4
-	k8s.io/apiextensions-apiserver v0.20.4
-	k8s.io/apimachinery v0.20.4
+	helm.sh/helm/v3 v3.7.1
+	k8s.io/api v0.22.1
+	k8s.io/apiextensions-apiserver v0.22.1
+	k8s.io/apimachinery v0.22.1
 	sigs.k8s.io/controller-runtime v0.8.3
 )
 
