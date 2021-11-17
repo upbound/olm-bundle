@@ -18,10 +18,11 @@ import (
 )
 
 type olmBundleCLI struct {
-	ChartFilePath     string `help:"Path to Helm Chart.yaml file to produce metadata." type:"path" required:""`
-	OutputDir         string `help:"Output directory to save the OLM bundle files." type:"path" required:""`
-	ExtraResourcesDir string `help:"Extra resources you would like to add to the OLM bundle." type:"path"`
-	Version           string `help:"Version of the generated bundle. If not provided, value from Chart.yaml will be used"`
+	ChartFilePath      string `help:"Path to Helm Chart.yaml file to produce metadata." type:"path" required:""`
+	OutputDir          string `help:"Output directory to save the OLM bundle files." type:"path" required:""`
+	ExtraResourcesDir  string `help:"Extra resources you would like to add to the OLM bundle." type:"path"`
+	Version            string `help:"Version of the generated bundle. If not provided, value from Chart.yaml will be used"`
+	HelmChartOverrides bool   `help:"If set, metadata read from Chart.yaml will take precedence over those taken from the directory scan (in case of conflict)"`
 }
 
 func main() {
@@ -52,15 +53,16 @@ func main() {
 			Kind:       "ClusterServiceVersion",
 		},
 	}
-	hm := &manifests.HelmMetadata{
-		ChartFilePath: cli.ChartFilePath,
-		Version:       cli.Version,
-	}
-	ctx.FatalIfErrorf(hm.Embed(context.TODO(), resultCSV), "cannot embed metadata from Helm Chart.yaml file")
-
 	e := csv.NewEmbedder()
 	remaining, err := e.Embed(resources, resultCSV)
 	ctx.FatalIfErrorf(err, "cannot embed resources into ClusterServiceVersion file")
+
+	hm := &manifests.HelmMetadata{
+		ChartFilePath:      cli.ChartFilePath,
+		Version:            cli.Version,
+		HelmChartOverrides: cli.HelmChartOverrides,
+	}
+	ctx.FatalIfErrorf(hm.Embed(context.TODO(), resultCSV), "cannot embed metadata from Helm Chart.yaml file")
 
 	// Write the final overriding values.
 	ctx.FatalIfErrorf(csv.OverrideClusterServiceVersion(resultCSV, cli.OutputDir), "cannot override ClusterServiceVersion")
