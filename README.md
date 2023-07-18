@@ -46,3 +46,14 @@ annotations:
   operators.operatorframework.io.bundle.channels.v1: "beta,stable"
   operators.operatorframework.io.bundle.channel.default.v1: "stable"
 ```
+
+## Releasing
+
+To release a new version of the tool, run the following command:
+```bash
+make build.all
+```
+
+This will place the binaries in `_output/bin` directory.
+
+Create a new release with a tag and upload all the binaries as assets.

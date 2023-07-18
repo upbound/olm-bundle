@@ -1,7 +1,7 @@
 PROJECT_NAME := olm-bundle
 PROJECT_REPO := github.com/upbound/$(PROJECT_NAME)
 
-PLATFORMS ?= linux_amd64 darwin_amd64
+PLATFORMS ?= linux_amd64 darwin_amd64 linux_arm64 darwin_arm64
 # -include will silently skip missing files, which allows us
 # to load those files with a target in the Makefile. If only
 # "include" was used, the make command would fail and refuse
