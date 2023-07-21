@@ -38,6 +38,9 @@ func (hm *HelmMetadata) Embed(ctx context.Context, csv *v1alpha1.ClusterServiceV
 		ver = hm.Version
 	}
 	csv.Name = fmt.Sprintf("%s.%s", c.Name, ver)
+	// set mandataory displayName field
+	csv.Spec.DisplayName = c.Name
+
 	v, err := semver.Make(strings.TrimPrefix(ver, "v"))
 	if err != nil {
 		return errors.Wrap(err, "cannot make a semver version from version string in Helm metadata")
