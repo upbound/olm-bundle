@@ -47,6 +47,17 @@ func (p *Parser) Parse() ([]*unstructured.Unstructured, error) {
 	return result, nil
 }
 
+// removeNamespace removes the namespace field of resources intended to be inserted into
+// an OLM manifests directory.
+//
+// This is required to pass OLM validations which require that namespaced resources do
+// not include explicit namespace settings. OLM automatically installs namespaced
+// resources in the same namespace that the operator is installed in, which is determined
+// at runtime, not bundle/packagemanifests creation time.
+func removeNamespace(obj *unstructured.Unstructured) {
+	obj.SetNamespace("")
+}
+
 func parseStream(in io.Reader) ([]*unstructured.Unstructured, error) {
 	dec := yaml.NewYAMLOrJSONDecoder(in, 1024)
 	var result []*unstructured.Unstructured
@@ -64,6 +75,7 @@ func parseStream(in io.Reader) ([]*unstructured.Unstructured, error) {
 		if u.GetAPIVersion() == "" || u.GetKind() == "" {
 			continue
 		}
+		removeNamespace(u)
 		result = append(result, u)
 	}
 	return result, nil
