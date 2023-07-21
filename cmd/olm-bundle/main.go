@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -22,6 +23,7 @@ type olmBundleCLI struct {
 	OutputDir         string `help:"Output directory to save the OLM bundle files." type:"path" required:""`
 	ExtraResourcesDir string `help:"Extra resources you would like to add to the OLM bundle." type:"path"`
 	Version           string `help:"Version of the generated bundle. If not provided, value from Chart.yaml will be used"`
+	ReplacesVersion   string `help:"Version of the operator that this new bundle should replace. This should be empty for the fist release (~CSV.spec.replaces)"`
 }
 
 func main() {
@@ -73,6 +75,12 @@ func main() {
 	}
 	for k, v := range ann {
 		resultCSV.GetAnnotations()[k] = v
+	}
+
+	// Sets the csv.Spec.Replaces that's needed for OLM to build the dependency DAG
+	if cli.ReplacesVersion != "" {
+		name := resultCSV.Name[:strings.IndexByte(resultCSV.Name, '.')]
+		resultCSV.Spec.Replaces = fmt.Sprintf("%s.%s", name, cli.ReplacesVersion)
 	}
 
 	// Validate and write the files to the disk.
